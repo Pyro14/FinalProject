@@ -4,7 +4,7 @@ import sqlite3 as sql
 from tkinter import *
 from PIL import Image, ImageTk
 
-db_path = "C:/Users/manuf/PycharmProjects/Final Project/database/users.db"
+db_path = "C:/Users/manuf/PycharmProjects/FinalProject/database/users.db"
 
 #class for the main window
 class MainWindow:
@@ -137,7 +137,7 @@ class MainWindow:
         columns_by_table = {
             'movies': ["id", "name", "release_date", "director","duration_min"],
             'series': ["id", "name", "num_season", "episodes"],
-            'users': ["id", "name", "num_season", "episodes"],
+            'users': ["id", "username", "password", "dev"],
         }
 
         columns = columns_by_table[table]
@@ -154,50 +154,44 @@ class MainWindow:
             editor_frame = Frame(self.window)
             editor_frame.pack(pady=20)
 
-            for column in columns_by_table:
-                Label(editor_frame, text=f"{column}")
+            entries ={}
+            for i, column in enumerate(columns[1:]):
+                Label(editor_frame, text=f"{table} {column}").grid(row=0, column=i)
+                entry = Entry(editor_frame)
+                entry.grid(row=1, column=i)
+                entries[column] = entry
 
-         #   Label(editor_frame, text="Movie name: ").grid(row=0, column=0)
-         #   name_entry = Entry(editor_frame)
-          #  name_entry.grid(row=0, column=1)
 
-          #  Label(editor_frame, text="Release date: ").grid(row=1, column=0)
-          #  date_entry = Entry(editor_frame)
-          #  date_entry.grid(row=1, column=1)
+            def func():
+                data = [ entries[col].get() for col in columns[1:]]
+                self.add_to_database(table, columns[1:], data, title)
 
-          #  Label(editor_frame, text="Director: ").grid(row=0, column=2)
-          #  director_entry = Entry(editor_frame)
-           # director_entry.grid(row=0, column=3)
+            Button(editor_frame, text=f"Add {table}", command=func).grid(row=1, column=5, pady=10)
+            Button(editor_frame, text=f"Delete {title}", command=lambda: self.del_database_data(title, table)).grid(row=0, column=5, pady=10)
 
-           # Label(editor_frame, text="Movie durarion: ").grid(row=1, column=2)
-           # duration_min_entry = Entry(editor_frame)
-           # duration_min_entry.grid(row=1, column=3)
-
-            Button(editor_frame, text="Add movie", command=lambda: self.add_movie( name_entry.get(), date_entry.get(), director_entry.get(), duration_min_entry.get())).grid(row=0, column=5, pady=10)
-            Button(editor_frame, text="Delete movie", command=self.del_movie).grid(row=1, column=5, pady=10)
-
-    def add_movie(self,name, release_date, director,duration_min):
+    def add_to_database (self,table, columns, data, title):
         con = sql.connect(db_path)
         cur = con.cursor()
-        cur.execute("INSERT INTO movies (name, release_date, director,duration_min) VALUES (?, ?, ?, ?)", (name, release_date, director,duration_min))
+        qs = ', '.join(['?' for _ in range(len(columns))])
+        cols = ', '.join(columns)
+        cur.execute(f"INSERT INTO {table} ({cols}) VALUES ({qs})", data)
         con.commit()
         con.close()
-        self.movie_catalog()
+        self.catalog(title,table)
 
-    def del_movie(self):
+    def del_database_data(self,title,table):
+        con = sql.connect(db_path)
+        cur = con.cursor()
         selected = self.table.selection()
         if not selected:
             return
         item=self.table.item(selected)
-        movie_id = item["values"][0]
-        con = sql.connect(db_path)
-        cur = con.cursor()
-        cur.execute("DELETE FROM movies WHERE id = ?", (movie_id,))
+        id = item["values"][0]
+        cur.execute(f"DELETE FROM {table} WHERE id = ?", (id,))
         con.commit()
         con.close()
 
-        self.movie_catalog()
-
+        self.catalog(title,table)
 
     def movie_catalog(self):
         self.catalog("movie", "movies")
