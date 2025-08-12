@@ -3,6 +3,7 @@ from tkinter import ttk
 import sqlite3 as sql
 from tkinter import *
 from PIL import Image, ImageTk
+from matplotlib.image import thumbnail
 
 db_path = "C:/Users/manuf/PycharmProjects/FinalProject/database/users.db"
 
@@ -79,7 +80,6 @@ class MainWindow:
         else:
             self.text['text'] = "Incorrect password"
 
-
     def pyflix_menu(self):
         for widget in self.window.winfo_children():
             widget.destroy()
@@ -141,13 +141,22 @@ class MainWindow:
         }
 
         columns = columns_by_table[table]
+        main_frame = Frame(self.window)
 
-        self.table = ttk.Treeview(self.window, columns=columns, show="headings")
+        thumb_list = Frame(main_frame)
+        thumb_list.grid(row=0, column=0)
+        image= PhotoImage(file="images/Mario.png")
+        label = Label(thumb_list, image=image)
+        label.grid(row=0, column=1)
+
+        treeview = ttk.Treeview(main_frame, columns=columns, show="headings", height=38)
+        treeview.grid(row=0, column=1)
+
         for column in columns:
-            self.table.heading(column, text=column)
+            treeview.heading(column, text=column)
         for row in data:
-            self.table.insert("", "end", values=row)
-        self.table.pack(pady=20, fill=tkinter.Y, expand=True)
+            treeview.insert("", "end", values=row)
+        main_frame.pack(pady=20, fill=tkinter.Y, expand=True)
 
         # dev tools
         if self.is_dev :
