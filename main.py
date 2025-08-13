@@ -3,7 +3,7 @@ from tkinter import ttk
 import sqlite3 as sql
 from tkinter import *
 from PIL import Image, ImageTk
-from matplotlib.image import thumbnail
+
 
 db_path = "C:/Users/manuf/PycharmProjects/FinalProject/database/users.db"
 
@@ -145,17 +145,25 @@ class MainWindow:
 
         thumb_list = Frame(main_frame)
         thumb_list.grid(row=0, column=0)
-        image= PhotoImage(file="images/Mario.png")
-        label = Label(thumb_list, image=image)
-        label.grid(row=0, column=1)
 
-        treeview = ttk.Treeview(main_frame, columns=columns, show="headings", height=38)
-        treeview.grid(row=0, column=1)
+        img = Image.open(("images/Mario.png"))
+
+        target_height =600
+        aspect_ratio = img.width / img.height
+        target_width = int(target_height * aspect_ratio)
+
+        resized_img = img.resize((target_width, target_height), Image.LANCZOS)
+        self.display_image = ImageTk.PhotoImage(resized_img)
+        label = Label(thumb_list, image=self.display_image)
+        label.grid(row=0, column=0)
+
+        self.table= ttk.Treeview(main_frame, columns=columns, show="headings", height=38)
+        self.table.grid(row=0, column=1)
 
         for column in columns:
-            treeview.heading(column, text=column)
+            self.table.heading(column, text=column)
         for row in data:
-            treeview.insert("", "end", values=row)
+            self.table.insert("", "end", values=row)
         main_frame.pack(pady=20, fill=tkinter.Y, expand=True)
 
         # dev tools
