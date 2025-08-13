@@ -135,56 +135,71 @@ class MainWindow:
         con.close()
 
         columns_by_table = {
-            'movies': ["id", "name", "release_date", "director","duration_min"],
-            'series': ["id", "name", "num_season", "episodes"],
+            'movies': ["id", "name", "release_date", "director", "duration_min", "thumbnail"],
+            'series': ["id", "name", "num_season", "episodes", "thumbnail"],
             'users': ["id", "username", "password", "dev"],
         }
 
         columns = columns_by_table[table]
         main_frame = Frame(self.window)
+        main_frame.pack(pady=20, fill=tkinter.Y, expand=True)
 
+        # Thumbnail display
         thumb_list = Frame(main_frame)
         thumb_list.grid(row=0, column=0)
+        self.thumbnail_label = Label(thumb_list)
+        self.thumbnail_label.grid(row=0, column=0)
 
-        img = Image.open(("images/Mario.png"))
-
-        target_height =600
-        aspect_ratio = img.width / img.height
-        target_width = int(target_height * aspect_ratio)
-
-        resized_img = img.resize((target_width, target_height), Image.LANCZOS)
-        self.display_image = ImageTk.PhotoImage(resized_img)
-        label = Label(thumb_list, image=self.display_image)
-        label.grid(row=0, column=0)
-
-        self.table= ttk.Treeview(main_frame, columns=columns, show="headings", height=38)
+        # Table
+        self.table = ttk.Treeview(main_frame, columns=columns, show="headings", height=38)
         self.table.grid(row=0, column=1)
 
         for column in columns:
             self.table.heading(column, text=column)
         for row in data:
             self.table.insert("", "end", values=row)
-        main_frame.pack(pady=20, fill=tkinter.Y, expand=True)
 
-        # dev tools
-        if self.is_dev :
+        # Image update on selection
+        def on_select(event):
+            selected = self.table.selection()
+            if not selected:
+                return
+            item = self.table.item(selected)
+            values = item["values"]
+            thumbnail = values[-1]  # last column is thumbnail
+
+            try:
+                img = Image.open(f"images/{thumbnail}")
+                target_height = 600
+                aspect_ratio = img.width / img.height
+                target_width = int(target_height * aspect_ratio)
+                resized_img = img.resize((target_width, target_height), Image.LANCZOS)
+                self.display_image = ImageTk.PhotoImage(resized_img)
+                self.thumbnail_label.config(image=self.display_image, text="")
+            except Exception as e:
+                print(f"Error loading image: {e}")
+                self.thumbnail_label.config(image='', text="No image available")
+
+        self.table.bind("<<TreeviewSelect>>", on_select)
+
+        # Dev tools
+        if self.is_dev:
             editor_frame = Frame(self.window)
             editor_frame.pack(pady=20)
 
-            entries ={}
+            entries = {}
             for i, column in enumerate(columns[1:]):
                 Label(editor_frame, text=f"{table} {column}").grid(row=0, column=i)
                 entry = Entry(editor_frame)
                 entry.grid(row=1, column=i)
                 entries[column] = entry
 
-
             def func():
-                data = [ entries[col].get() for col in columns[1:]]
+                data = [entries[col].get() for col in columns[1:]]
                 self.add_to_database(table, columns[1:], data, title)
 
-            Button(editor_frame, text=f"Add {table}", command=func).grid(row=1, column=5, pady=10)
-            Button(editor_frame, text=f"Delete {title}", command=lambda: self.del_database_data(title, table)).grid(row=0, column=5, pady=10)
+            Button(editor_frame, text=f"Add {table}", command=func).grid(row=1, column=len(columns), pady=10)
+            Button(editor_frame, text=f"Delete {title}", command=lambda: self.del_database_data(title, table)).grid(row=0, column=len(columns), pady=10)
 
     def add_to_database (self,table, columns, data, title):
         con = sql.connect(db_path)
