@@ -19,6 +19,10 @@ class MainWindow:
 
         self.login_screen()  # Load login screen on startup
 
+    # Lists for the fav function
+        self.user_movie_list = set()
+        self.user_series_list = set()
+
     # Login screen layout
     def login_screen(self):
         # Clear any existing widgets
@@ -66,7 +70,7 @@ class MainWindow:
 
         con = sql.connect(db_path)
         cur = con.cursor()
-        cur.execute(f"SELECT password, dev FROM users WHERE username = '{login_user}'")
+        cur.execute(f"SELECT id, password, dev FROM users WHERE username = '{login_user}'")
         result = cur.fetchone()
         con.close()
 
@@ -74,7 +78,7 @@ class MainWindow:
             self.text['text'] = "User not found"
             return
 
-        password, dev = result
+        self.user_id, password, dev = result
         if password == login_pass:
             self.username = login_user
             self.is_dev = dev == 1
@@ -99,9 +103,9 @@ class MainWindow:
         # Navigation buttons
         Button(button_frame, text="Series Catalog", command=self.series_catalog, width=12).grid(row=0, column=0, padx=5)
         Button(button_frame, text="Movie Catalog", command=self.movie_catalog, width=12).grid(row=0, column=1, padx=5)
-        Button(button_frame, text="Favourites", width=12).grid(row=0, column=2, padx=5)
-        Button(button_frame, text="Watched", width=12).grid(row=0, column=3, padx=5)
-        Button(button_frame, text="Watching", width=12).grid(row=0, column=4, padx=5)
+        Button(button_frame, text="Fav Series", command=self.fav_display, width=12).grid(row=0, column=2, padx=5)
+        Button(button_frame, text="Fav Movies", width=12).grid(row=0, column=3, padx=5)
+        Button(button_frame, text="Watched", width=12).grid(row=0, column=4, padx=5)
 
         Button(self.window, text="Logout", command=self.login_screen).pack(pady=20)
 
@@ -128,6 +132,7 @@ class MainWindow:
         for widget in self.window.winfo_children():
             widget.destroy()
 
+
         self.window.title(f"{title.capitalize()} Catalog")
         Label(self.window, text=f"Welcome, {self.username} to our {title} catalog!", font=("Arial", 16)).pack(pady=20)
 
@@ -137,6 +142,8 @@ class MainWindow:
         Login_func = self.dev_menu if self.is_dev else self.pyflix_menu
         Button(button_frame, text="Menu", command=Login_func, width=12).grid(row=0, column=1, padx=5)
         Button(button_frame, text="Logout", command=self.login_screen, width=12).grid(row=0, column=2, padx=5)
+        if self.is_dev == 0:
+            Button(button_frame, text="Fav selection",command=lambda:self.toggle_fav(table, title), width=12).grid(row=0, column=3 , padx=5)
 
         # Fetch data from database
         con = sql.connect(db_path)
@@ -252,6 +259,45 @@ class MainWindow:
 
         # Refresh catalog view
         self.catalog(title, table)
+    def load_fav_table(self,table):
+        con = sql.connect(db_path)
+        cur = con.cursor()
+        cur.execute(f"SELECT {table}_id FROM fav_{table} WHERE user_id = '{self.user_id}'")
+        result = cur.fetchall()
+        con.close()
+        return [r[0] for r in result]
+
+    def toggle_fav(self,table,title):
+
+
+        con = sql.connect(db_path)
+        cur = con.cursor()
+
+        # Get selected item from the table
+        selected = self.table.selection()
+        if not selected:
+            return
+        item = self.table.item(selected)
+        id = item["values"][0]  # Assuming first column is ID
+        ### append all this list to the current list on the table
+
+        if table == "series" and id in self.load_fav_table(table):
+            cur.execute(f"DELETE FROM fav_{table} WHERE user_id = ? AND series_id = ?", (self.user_id,id))
+        elif table == "movies" and id in self.load_fav_table(table):
+            cur.execute(f"DELETE FROM fav_{table} WHERE user_id = ? AND movies_id = ?", (self.user_id,id))
+        else:
+            cur.execute(f"INSERT INTO fav_{table} VALUES (?,?)", (self.user_id, id))
+
+        if table == "Movies":
+            print(self.user_movie_list)
+        else:
+            print(self.user_series_list)
+        con.commit()
+        con.close()
+
+        # Refresh catalog view
+        self.catalog(title, table)
+
 
     # Shortcut to open movie catalog
     def movie_catalog(self):
