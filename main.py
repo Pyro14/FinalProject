@@ -4,6 +4,7 @@ from tkinter import ttk  # For advanced widgets like Treeview
 import sqlite3 as sql  # For database operations
 from tkinter import *  # Additional Tkinter components
 from PIL import Image, ImageTk  # For image handling
+from mmsystem import SELECTDIB
 
 # Path to the SQLite database
 db_path = "C:/Users/manuf/PycharmProjects/FinalProject/database/users.db"
@@ -103,8 +104,8 @@ class MainWindow:
         # Navigation buttons
         Button(button_frame, text="Series Catalog", command=self.series_catalog, width=12).grid(row=0, column=0, padx=5)
         Button(button_frame, text="Movie Catalog", command=self.movie_catalog, width=12).grid(row=0, column=1, padx=5)
-        Button(button_frame, text="Fav Series", width=12).grid(row=0, column=2, padx=5)
-        Button(button_frame, text="Fav Movies", width=12).grid(row=0, column=3, padx=5)
+        Button(button_frame, text="Fav Series", command=self.fav_series_catalog, width=12).grid(row=0, column=2, padx=5)
+        Button(button_frame, text="Fav Movies", command=self.fav_movies_catalog, width=12).grid(row=0, column=3, padx=5)
         Button(button_frame, text="Watched", width=12).grid(row=0, column=4, padx=5)
 
         Button(self.window, text="Logout", command=self.login_screen).pack(pady=20)
@@ -145,19 +146,36 @@ class MainWindow:
         if self.is_dev == 0:
             Button(button_frame, text="Fav selection",command=lambda:self.toggle_fav(table, title), width=12).grid(row=0, column=3 , padx=5)
 
-        # Fetch data from database
-        con = sql.connect(db_path)
-        cur = con.cursor()
-        cur.execute(f"SELECT * FROM {table}")
-        data = cur.fetchall()
-        con.close()
-
         # Define columns for each table
         columns_by_table = {
             'movies': ["id", "name", "release_date", "director", "duration_min", "thumbnail"],
             'series': ["id", "name", "num_season", "episodes", "thumbnail"],
             'users': ["id", "username", "password", "dev", "fav_series", "fav_movies"],
         }
+        columns_by_table['fav_series']=columns_by_table['series']
+        columns_by_table['fav_movies']=columns_by_table['movies']
+
+        if table.startswith('fav'):
+            query = f""" 
+            SELECT
+                {', '.join(columns_by_table[table])}
+            FROM
+                {table.strip('fav_')} t
+            LEFT JOIN
+                fav_series f
+            ON t.id = f.{table.strip('fav_')}_id
+            WHERE
+               f.user_id = {self.user_id}"""
+
+        else:
+            query = f"SELECT * FROM {table}"
+        # Fetch data from database
+        con = sql.connect(db_path)
+        cur = con.cursor()
+        cur.execute(query)
+        data = cur.fetchall()
+        con.close()
+
 
         columns = columns_by_table[table]
         main_frame = Frame(self.window)
@@ -240,6 +258,8 @@ class MainWindow:
         # Refresh catalog view
         self.catalog(title, table)
 
+
+
     # Function to delete selected record from the database
     def del_database_data(self, title, table):
         con = sql.connect(db_path)
@@ -305,6 +325,12 @@ class MainWindow:
     # Shortcut to open series catalog
     def series_catalog(self):
         self.catalog("series", "series")
+
+    def fav_series_catalog(self):
+        self.catalog("fav_series", "fav_series")
+
+    def fav_movies_catalog(self):
+        self.catalog("fav_movies", "movies")
 
     # Shortcut to open users catalog (only for devs)
     def users_catalog(self):
