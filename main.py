@@ -103,7 +103,7 @@ class MainWindow:
         # Navigation buttons
         Button(button_frame, text="Series Catalog", command=self.series_catalog, width=12).grid(row=0, column=0, padx=5)
         Button(button_frame, text="Movie Catalog", command=self.movie_catalog, width=12).grid(row=0, column=1, padx=5)
-        Button(button_frame, text="Fav Series", command=self.fav_display, width=12).grid(row=0, column=2, padx=5)
+        Button(button_frame, text="Fav Series", width=12).grid(row=0, column=2, padx=5)
         Button(button_frame, text="Fav Movies", width=12).grid(row=0, column=3, padx=5)
         Button(button_frame, text="Watched", width=12).grid(row=0, column=4, padx=5)
 
@@ -156,7 +156,7 @@ class MainWindow:
         columns_by_table = {
             'movies': ["id", "name", "release_date", "director", "duration_min", "thumbnail"],
             'series': ["id", "name", "num_season", "episodes", "thumbnail"],
-            'users': ["id", "username", "password", "dev"],
+            'users': ["id", "username", "password", "dev", "fav_series", "fav_movies"],
         }
 
         columns = columns_by_table[table]
@@ -297,7 +297,6 @@ class MainWindow:
 
         # Refresh catalog view
         self.catalog(title, table)
-
 
     # Shortcut to open movie catalog
     def movie_catalog(self):
